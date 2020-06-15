@@ -1,52 +1,36 @@
-import React, { createContext, Component } from "react";
+import React, { Component, lazy, Suspense } from "react";
 import "./App.css";
 
-// 默认值
-const BatteryContent = createContext(90);
-// const OnlineContent = createContext();
+// 自定义命名
+const About = lazy(() => import(/* webpackChunkName:"about" */ "./About.jsx"));
 
-class Leaf extends Component {
-  static contextType = BatteryContent;
-  render() {
-    // Consumer也是嵌套
-    const battery = this.context;
-    return <h1>{battery}</h1>;
-  }
-}
-
-class Middle extends Component {
-  render() {
-    return <Leaf />;
-  }
-}
-
-class App extends Component {
+export default class App extends Component {
   state = {
-    battery: 60,
-    online: false,
+    hasError: false,
   };
 
-  // Provider嵌套
+  // componentDidCatch() {
+  //   this.setState({
+  //     hasError: true,
+  //   });
+  // }
+
+  static getDerivedStateFromError() {
+    return {
+      hasError: true,
+    };
+  }
+
   render() {
-    const { battery, online } = this.state;
+    if (this.state.hasError) {
+      return <div>error</div>;
+    }
     return (
-      <BatteryContent.Provider value={battery}>
-        <button
-          type="button"
-          onClick={() => this.setState({ battery: battery - 1 })}
-        >
-          press
-        </button>
-        <button
-          type="button"
-          onClick={() => this.setState({ online: !online })}
-        >
-          switch
-        </button>
-        <Middle />
-      </BatteryContent.Provider>
+      <div>
+        <Suspense fallback={<div>loading</div>}>
+          <About></About>
+        </Suspense>
+      </div>
     );
   }
 }
-
-export default App;
