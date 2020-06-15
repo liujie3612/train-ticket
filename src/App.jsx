@@ -2,25 +2,15 @@ import React, { createContext, Component } from "react";
 import "./App.css";
 
 // 默认值
-const BatteryContent = createContext();
-const OnlineContent = createContext();
+const BatteryContent = createContext(90);
+// const OnlineContent = createContext();
 
 class Leaf extends Component {
+  static contextType = BatteryContent;
   render() {
     // Consumer也是嵌套
-    return (
-      <BatteryContent.Consumer>
-        {(battery) => (
-          <OnlineContent.Consumer>
-            {(online) => (
-              <h1>
-                Battery: {battery}, Online: {String(online)}
-              </h1>
-            )}
-          </OnlineContent.Consumer>
-        )}
-      </BatteryContent.Consumer>
-    );
+    const battery = this.context;
+    return <h1>{battery}</h1>;
   }
 }
 
@@ -41,21 +31,19 @@ class App extends Component {
     const { battery, online } = this.state;
     return (
       <BatteryContent.Provider value={battery}>
-        <OnlineContent.Provider value={online}>
-          <button
-            type="button"
-            onClick={() => this.setState({ battery: battery - 1 })}
-          >
-            press
-          </button>
-          <button
-            type="button"
-            onClick={() => this.setState({ online: !online })}
-          >
-            switch
-          </button>
-          <Middle />
-        </OnlineContent.Provider>
+        <button
+          type="button"
+          onClick={() => this.setState({ battery: battery - 1 })}
+        >
+          press
+        </button>
+        <button
+          type="button"
+          onClick={() => this.setState({ online: !online })}
+        >
+          switch
+        </button>
+        <Middle />
       </BatteryContent.Provider>
     );
   }
