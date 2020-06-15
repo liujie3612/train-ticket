@@ -1,36 +1,47 @@
-import React, { Component, lazy, Suspense } from "react";
+import React, { Component, PureComponent, memo } from "react";
 import "./App.css";
 
-// 自定义命名
-const About = lazy(() => import(/* webpackChunkName:"about" */ "./About.jsx"));
+// class Foo extends PureComponent {
+//   render() {
+//     console.log("foo render");
+//     return <div>{this.props.person.age}</div>;
+//   }
+// }
 
-export default class App extends Component {
+const Foo = memo(function Foo(props) {
+  console.log("foo render");
+  return <div>{props.person.age}</div>;
+});
+
+class App extends Component {
   state = {
-    hasError: false,
+    count: 0,
+    person: {
+      age: 1,
+    },
   };
 
-  // componentDidCatch() {
-  //   this.setState({
-  //     hasError: true,
-  //   });
-  // }
-
-  static getDerivedStateFromError() {
-    return {
-      hasError: true,
-    };
-  }
+  //这样就能绑定this，也能避免Foo重新渲染
+  callback = () => {};
 
   render() {
-    if (this.state.hasError) {
-      return <div>error</div>;
-    }
+    const person = this.state.person;
     return (
       <div>
-        <Suspense fallback={<div>loading</div>}>
-          <About></About>
-        </Suspense>
+        <button
+          onClick={() => {
+            person.age++;
+            this.setState({
+              count: this.state.count + 1,
+            });
+          }}
+        >
+          press
+        </button>
+        <Foo person={person} cb={this.callback}></Foo>
       </div>
     );
   }
 }
+
+export default App;
