@@ -1,9 +1,29 @@
 import React, { useState, useRef, useCallback, useEffect, memo } from "react";
 import "./App.css";
+import { createSet, createAdd, createRomove, createToggle } from "./actions";
 
 let idSep = Date.now();
 
+// 1. addTodo removeTodo toggleTodo封装成一个函数dispath，
+// 2. 函数统一，只有参数为action不一样, 由type和payload组成，这样就把创建action的行为封装成函数，叫做actionCreate
+// 3. actionCreate还是需要给dispatch调用，这样就把actionCreate和dispatch打包到一起，叫做bindActionCreators
+
+function bindActionCreators(actionCreators, dispatch) {
+  const ret = {};
+  for (let key in actionCreators) {
+    ret[key] = function (...args) {
+      // actionCreator 就是 createSet, createAdd, createRomove, createToggle
+      const actionCreator = actionCreators[key];
+      // actionCreator执行完之后，返回 {type: xxx, payload}这样的对象,就是action
+      const action = actionCreator(...args);
+      dispatch(action);
+    };
+  }
+  return ret;
+}
+
 const Control = memo(function Control(props) {
+  // const { dispatch } = props;
   const { addTodo } = props;
   const inputRef = useRef();
 
@@ -13,12 +33,20 @@ const Control = memo(function Control(props) {
     if (newText.length === 0) {
       return;
     }
+    // dispatch(
+    //   createAdd({
+    //     id: ++idSep,
+    //     text: newText,
+    //     complete: false,
+    //   })
+    // );
+
+    // 具备了addTodo和dispatch的双重功能
     addTodo({
       id: ++idSep,
       text: newText,
       complete: false,
     });
-
     inputRef.current.value = "";
   };
   return (
@@ -39,8 +67,8 @@ const Control = memo(function Control(props) {
 const TodoItem = memo(function TodoItem(props) {
   const {
     todo: { id, text, complete },
-    toggleTodo,
     removeTodo,
+    toggleTodo,
   } = props;
   const onChange = () => {
     toggleTodo(id);
@@ -58,7 +86,7 @@ const TodoItem = memo(function TodoItem(props) {
 });
 
 const Todos = memo(function Todos(props) {
-  const { todos, toggleTodo, removeTodo } = props;
+  const { todos, removeTodo, toggleTodo } = props;
   return (
     <div>
       <ul>
@@ -67,8 +95,8 @@ const Todos = memo(function Todos(props) {
             <TodoItem
               todo={todo}
               key={todo.id}
-              toggleTodo={toggleTodo}
               removeTodo={removeTodo}
+              toggleTodo={toggleTodo}
             ></TodoItem>
           );
         })}
@@ -82,34 +110,42 @@ const LS_KEY = "LS_KEY";
 function TodoList() {
   const [todos, setTodos] = useState([]);
 
-  const addTodo = useCallback((todo) => {
-    setTodos((todos) => [...todos, todo]);
-  }, []);
-
-  const removeTodo = useCallback((id) => {
-    setTodos((todos) =>
-      todos.filter((todo) => {
-        return todo.id !== id;
-      })
-    );
-  }, []);
-
-  const toggleTodo = useCallback((id) => {
-    setTodos((todos) =>
-      todos.map((todo) => {
-        return todo.id === id
-          ? {
-              ...todo,
-              complete: !todo.complete,
-            }
-          : todo;
-      })
-    );
+  // 对数据的操作
+  const dispatch = useCallback((action) => {
+    const { type, payload } = action;
+    switch (type) {
+      case "set":
+        setTodos(payload);
+        break;
+      case "add":
+        setTodos((todos) => [...todos, payload]);
+        break;
+      case "remove":
+        setTodos((todos) =>
+          todos.filter((todo) => {
+            return todo.id !== payload;
+          })
+        );
+        break;
+      case "toggle":
+        setTodos((todos) =>
+          todos.map((todo) => {
+            return todo.id === payload
+              ? {
+                  ...todo,
+                  complete: !todo.complete,
+                }
+              : todo;
+          })
+        );
+        break;
+      default:
+    }
   }, []);
 
   useEffect(() => {
     const todos = JSON.parse(localStorage.getItem(LS_KEY));
-    setTodos(todos);
+    dispatch(createSet(todos));
   }, []);
 
   useEffect(() => {
@@ -118,8 +154,14 @@ function TodoList() {
 
   return (
     <div className="todos-list">
-      <Control addTodo={addTodo} />
-      <Todos removeTodo={removeTodo} toggleTodo={toggleTodo} todos={todos} />
+      <Control {...bindActionCreators({ addTodo: createAdd }, dispatch)} />
+      <Todos
+        {...bindActionCreators({
+          removeTodo: createRomove,
+          toggleTodo: createToggle,
+        })}
+        todos={todos}
+      />
     </div>
   );
 }
