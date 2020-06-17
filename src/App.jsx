@@ -1,47 +1,34 @@
-import React, { Component, PureComponent, memo } from "react";
+import React, { useState, useEffect, useContext, createContext } from "react";
 import "./App.css";
 
-// class Foo extends PureComponent {
-//   render() {
-//     console.log("foo render");
-//     return <div>{this.props.person.age}</div>;
-//   }
-// }
+const CountContext = createContext();
 
-const Foo = memo(function Foo(props) {
-  console.log("foo render");
-  return <div>{props.person.age}</div>;
-});
+function Counter() {
+  // Contextde的数量可以有多个
+  // class的解决方案：contextType,consumer
+  const count = useContext(CountContext);
+  return <h1>{count}</h1>;
+}
 
-class App extends Component {
-  state = {
-    count: 0,
-    person: {
-      age: 1,
-    },
-  };
-
-  //这样就能绑定this，也能避免Foo重新渲染
-  callback = () => {};
-
-  render() {
-    const person = this.state.person;
-    return (
-      <div>
-        <button
-          onClick={() => {
-            person.age++;
-            this.setState({
-              count: this.state.count + 1,
-            });
-          }}
-        >
-          press
-        </button>
-        <Foo person={person} cb={this.callback}></Foo>
-      </div>
-    );
-  }
+function App(params) {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    document.title = count;
+  });
+  return (
+    <div>
+      <button
+        onClick={() => {
+          setCount(count + 1);
+        }}
+      >
+        click ({count})
+      </button>
+      <CountContext.Provider value={count}>
+        <Counter />
+      </CountContext.Provider>
+    </div>
+  );
 }
 
 export default App;
