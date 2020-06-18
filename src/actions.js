@@ -5,10 +5,21 @@ export function createSet(payload) {
   }
 }
 
-export function createAdd(payload) {
-  return {
-    type: 'add',
-    payload
+let idSep = Date.now();
+
+export function createAdd(text) {
+  return (dispatch, state) => {
+    const { todos } = state
+    if (!todos.find(todo => todo.text === text)) {
+      dispatch({
+        type: 'add',
+        payload: {
+          id: ++idSep,
+          text,
+          complete: false
+        }
+      })
+    }
   }
 }
 
@@ -25,5 +36,3 @@ export function createToggle(payload) {
     payload
   }
 }
-
-

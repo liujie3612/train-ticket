@@ -1,8 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect, memo } from "react";
 import "./App.css";
 import { createSet, createAdd, createRomove, createToggle } from "./actions";
-
-let idSep = Date.now();
+import reducer from "./reducers";
 
 // 1. addTodo removeTodo toggleTodo封装成一个函数dispath，
 // 2. 函数统一，只有参数为action不一样, 由type和payload组成，这样就把创建action的行为封装成函数，叫做actionCreate
@@ -42,11 +41,7 @@ const Control = memo(function Control(props) {
     // );
 
     // 具备了addTodo和dispatch的双重功能
-    addTodo({
-      id: ++idSep,
-      text: newText,
-      complete: false,
-    });
+    addTodo(newText);
     inputRef.current.value = "";
   };
   return (
@@ -107,45 +102,50 @@ const Todos = memo(function Todos(props) {
 
 const LS_KEY = "LS_KEY";
 
+let store = {
+  todos: [],
+  incrementCount: 0,
+};
+
 function TodoList() {
   const [todos, setTodos] = useState([]);
+  const [incrementCount, setIncrementCount] = useState(0);
 
-  // 对数据的操作
-  const dispatch = useCallback((action) => {
-    const { type, payload } = action;
-    switch (type) {
-      case "set":
-        setTodos(payload);
-        break;
-      case "add":
-        setTodos((todos) => [...todos, payload]);
-        break;
-      case "remove":
-        setTodos((todos) =>
-          todos.filter((todo) => {
-            return todo.id !== payload;
-          })
-        );
-        break;
-      case "toggle":
-        setTodos((todos) =>
-          todos.map((todo) => {
-            return todo.id === payload
-              ? {
-                  ...todo,
-                  complete: !todo.complete,
-                }
-              : todo;
-          })
-        );
-        break;
-      default:
+  useEffect(() => {
+    Object.assign(store, {
+      todos,
+      incrementCount,
+    });
+  }, [todos, incrementCount]);
+
+  const dispatch = (action) => {
+    // 之前的全部全是根据type调用setTodos和setIncrementCount函数
+    const setters = {
+      todos: setTodos,
+      incrementCount: setIncrementCount,
+    };
+
+    if ("function" === typeof action) {
+      action(dispatch, () => store);
+      return;
     }
-  }, []);
+
+    const newState = reducer(store, action);
+
+    // * newState只是根据不同的type返回的对应的state *
+    // * 返回的值直接用setters的set方法直接进行设值 *
+
+    for (let key in newState) {
+      setters[key](newState[key]);
+    }
+  };
 
   useEffect(() => {
     const todos = JSON.parse(localStorage.getItem(LS_KEY));
-    dispatch(createSet(todos));
+    const { setTodo } = {
+      ...bindActionCreators({ setTodo: createSet }, dispatch),
+    };
+    setTodo(todos);
   }, []);
 
   useEffect(() => {
@@ -156,10 +156,13 @@ function TodoList() {
     <div className="todos-list">
       <Control {...bindActionCreators({ addTodo: createAdd }, dispatch)} />
       <Todos
-        {...bindActionCreators({
-          removeTodo: createRomove,
-          toggleTodo: createToggle,
-        })}
+        {...bindActionCreators(
+          {
+            removeTodo: createRomove,
+            toggleTodo: createToggle,
+          },
+          dispatch
+        )}
         todos={todos}
       />
     </div>
