@@ -1,0 +1,38 @@
+import React, { useMemo } from "react";
+import PropTypes from "prop-types";
+import { h0 } from "../common/fp";
+import dayjs from "dayjs";
+import "./DepartDate.css";
+
+// 不用mono的原因：h0()直接从系统获取，DepartDate的数据输入不单纯，memo会有风险,导致该渲染的时候可能不渲染
+// 规避的话就从外面传入props
+export default function DepartDate(props) {
+  const { time, onClick } = props;
+
+  // 去掉小时分钟秒毫秒
+  const h0OfDepart = h0(time);
+  const departDate = new Date(h0OfDepart);
+
+  const departDateString = useMemo(() => {
+    return dayjs(h0OfDepart).format("YYYY-MM-DD");
+  }, [h0OfDepart]);
+
+  const isToday = h0OfDepart === h0();
+
+  const weekString =
+    "周" +
+    ["日", "一", "二", "三", "四", "五", "六"][departDate.getDay()] +
+    (isToday ? "(今天)" : "");
+
+  return (
+    <div className="depart-date" onClick={onClick}>
+      <input type="hidden" name="date" value={departDateString} />
+      {departDateString} <span className="depart-week">{weekString}</span>
+    </div>
+  );
+}
+
+DepartDate.propTypes = {
+  time: PropTypes.number.isRequired,
+  onClick: PropTypes.func.isRequired,
+};
